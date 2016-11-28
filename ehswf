@@ -50,6 +50,8 @@ if [[ -z $swf_name || -z $swf_address ]]; then
     echo "check contents of lesson$lesson.html"; exit 1
 else
     # download swf file:
+    echo "downloading $swf_name";
     curl -o "$swf_name" $swf_address;
+    echo "downloading done"
     rm lesson$lesson.html
 fi
