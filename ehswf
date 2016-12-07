@@ -1,5 +1,4 @@
 #!/bin/bash
-
 readonly LOGIN_PAGE="http://englishharmony.com/secure/login"
 readonly SESSION_COOKIE_NAME="amember_nr"
 
@@ -32,31 +31,35 @@ if [ ! -d $destdir ]; then
   echo "destination directory doesn't exist: $destdir"
 fi
 
-# login with the credentials and write cookies into the file:
-curl -s -S -d "amember_login=$username&amember_pass=$password" -c cookies.txt $LOGIN_PAGE > /dev/null
+# login with the credentials and write cookies into a temp file:
+cookiesFile=$(mktemp) || exit 1
+curl -s -S -d "amember_login=$username&amember_pass=$password" -c $cookiesFile $LOGIN_PAGE > /dev/null
 
 # check login status
-if cat cookies.txt | grep -q $SESSION_COOKIE_NAME; then
+if cat $cookiesFile | grep -q $SESSION_COOKIE_NAME; then
     echo "login succeed"
 else
     echo "login failed"; exit 1
 fi
 
 # download lesson html page:
-curl -b cookies.txt -O -s -S http://englishharmony.com/ehsystem/M$module/lesson$lesson.html > /dev/null
-
+lessonHtmlFile=$(mktemp) || exit 1
+curl -b $cookiesFile -o $lessonHtmlFile -s -S http://englishharmony.com/ehsystem/M$module/lesson$lesson.html > /dev/null
 # extract a name to be given to swf file:
-swf_name=$(perl -nle 'print $& if m{English Harmony System De Luxe Edition - \K[^<]+}' lesson$lesson.html).swf
+swf_name=$(perl -nle 'print $& if m{English Harmony System De Luxe Edition - \K[^<]+}' $lessonHtmlFile).swf
 # extract swf web address:
-swf_address=$(perl -nle 'print $& if m{<param name="movie" value="\K[^"]+}' lesson$lesson.html)
+swf_address=$(perl -nle 'print $& if m{<param name="movie" value="\K[^"]+}' $lessonHtmlFile)
 # check swf_name, swf_address:
 if [[ -z $swf_name || -z $swf_address ]]; then
+    rm -f $cookiesFile;
     echo "something went wrong with extracting swf info from the website";
-    echo "check contents of lesson$lesson.html"; exit 1
+    echo "check contents of $lessonHtmlFile"; exit 1
 else
     # download swf file:
     echo "downloading $swf_name";
     curl -o "$destdir/$swf_name" $swf_address;
     echo "downloading done"
-    rm lesson$lesson.html
 fi
+# remove tmp files
+rm -f $cookiesFile
+rm -f $lessonHtmlFile
