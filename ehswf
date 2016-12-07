@@ -5,12 +5,13 @@ readonly SESSION_COOKIE_NAME="amember_nr"
 
 function usage
 {
-    echo "usage: $0 username password module lesson"
+    echo "usage: $0 username password module lesson [destdir]"
     echo "module = 1..4, lesson = 1..30"
+    echo "destdir: destination directory, $PWD by default"
 }
 
 # check arguments count:
-if [ $# -ne 4 ]; then
+if [ $# -lt 4 ]; then
     usage; exit 1
 fi
 
@@ -18,6 +19,7 @@ username="$1"
 password="$2"
 module=$3
 lesson=$4
+destdir=${5-$PWD}
 
 # check arguments values:
 if (( $module > 4 || $module < 1 || $lesson > 30 || $lesson < 1 )); then
@@ -25,6 +27,9 @@ if (( $module > 4 || $module < 1 || $lesson > 30 || $lesson < 1 )); then
 fi
 if [[ -z $username || -z $password ]]; then
     usage; exit 1
+fi
+if [ ! -d $destdir ]; then
+  echo "destination directory doesn't exist: $destdir"
 fi
 
 # login with the credentials and write cookies into the file:
@@ -51,7 +56,7 @@ if [[ -z $swf_name || -z $swf_address ]]; then
 else
     # download swf file:
     echo "downloading $swf_name";
-    curl -o "$swf_name" $swf_address;
+    curl -o "$destdir/$swf_name" $swf_address;
     echo "downloading done"
     rm lesson$lesson.html
 fi
